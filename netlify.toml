@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[dev]
+  command = "npm run dev:vite"
+  targetPort = 5173
+
+[[edge_functions]]
+  path = "/*"
+  function = "auth"
+
+[functions]
+  directory = "netlify/functions"
+
