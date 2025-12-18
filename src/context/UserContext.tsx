@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
 export interface User {
   email: string;
@@ -22,7 +28,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/.netlify/functions/me")
+    fetch("/api/me")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         setUser(data);

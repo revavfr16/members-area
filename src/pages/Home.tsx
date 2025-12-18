@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-gray-100">Welcome</h2>
-      
+
       <div className="grid gap-4 md:grid-cols-2">
         <Link
           to="/training-funds-request"
@@ -14,7 +14,8 @@ export default function Home() {
             Training Funds Request
           </h3>
           <p className="mt-2 text-sm text-gray-400">
-            Submit a request for training funds including registration, travel, and accommodation expenses.
+            Submit a request for training funds including registration, travel,
+            and accommodation expenses.
           </p>
         </Link>
       </div>

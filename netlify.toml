@@ -13,3 +13,24 @@
 [functions]
   directory = "netlify/functions"
 
+# Clean URLs for functions (rewrites, not redirects)
+[[redirects]]
+  from = "/api/training/submit"
+  to = "/.netlify/functions/submit-training-request"
+  status = 200
+
+[[redirects]]
+  from = "/api/training/decide"
+  to = "/.netlify/functions/handle-training-decision"
+  status = 200
+
+[[redirects]]
+  from = "/api/me"
+  to = "/.netlify/functions/me"
+  status = 200
+
+[[redirects]]
+  from = "/api/logout"
+  to = "/.netlify/functions/logout"
+  status = 200
+

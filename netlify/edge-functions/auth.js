@@ -4,19 +4,17 @@ const COOKIE_NAME = "session";
 
 export default async (request, context) => {
   const url = new URL(request.url);
-  
+
   // Allow OAuth callback without forcing login
   if (url.pathname.startsWith("/.netlify/functions/oauth_callback")) {
     return context.next();
   }
 
-  // Allow logout endpoint
-  if (url.pathname.startsWith("/.netlify/functions/logout")) {
-    return context.next();
-  }
-
-  // Allow API endpoints to handle their own auth
-  if (url.pathname.startsWith("/.netlify/functions/")) {
+  // Allow API endpoints to handle their own auth (both direct and rewritten paths)
+  if (
+    url.pathname.startsWith("/.netlify/functions/") ||
+    url.pathname.startsWith("/api/")
+  ) {
     return context.next();
   }
 
@@ -34,9 +32,9 @@ export default async (request, context) => {
         return context.next();
       }
 
-      return new Response("Forbidden: Only @reva16.org accounts are allowed", { 
+      return new Response("Forbidden: Only @reva16.org accounts are allowed", {
         status: 403,
-        headers: { "Content-Type": "text/plain" }
+        headers: { "Content-Type": "text/plain" },
       });
     } catch (err) {
       // Invalid cookie → force re-auth
@@ -46,17 +44,23 @@ export default async (request, context) => {
 
   // No valid session → redirect to Google OAuth
   const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
-  
+
   if (!GOOGLE_CLIENT_ID) {
-    return new Response("Server configuration error: GOOGLE_CLIENT_ID not set", {
-      status: 500,
-      headers: { "Content-Type": "text/plain" }
-    });
+    return new Response(
+      "Server configuration error: GOOGLE_CLIENT_ID not set",
+      {
+        status: 500,
+        headers: { "Content-Type": "text/plain" },
+      },
+    );
   }
 
   const redirect = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   redirect.searchParams.set("client_id", GOOGLE_CLIENT_ID);
-  redirect.searchParams.set("redirect_uri", `${url.origin}/.netlify/functions/oauth_callback`);
+  redirect.searchParams.set(
+    "redirect_uri",
+    `${url.origin}/.netlify/functions/oauth_callback`,
+  );
   redirect.searchParams.set("response_type", "code");
   redirect.searchParams.set("scope", "openid email profile");
   redirect.searchParams.set("hd", "reva16.org"); // Hint to show only reva16.org accounts
@@ -66,4 +70,3 @@ export default async (request, context) => {
 };
 
 export const config = { path: "/*" };
-

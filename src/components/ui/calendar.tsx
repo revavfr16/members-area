@@ -21,14 +21,17 @@ function Calendar({
         month_caption: "flex justify-center pt-1 relative items-center w-full",
         caption_label: "text-sm font-medium text-gray-100",
         nav: "flex items-center gap-1",
-        button_previous: "absolute left-1 top-0 inline-flex items-center justify-center rounded-md h-7 w-7 bg-transparent hover:bg-gray-700 text-gray-400 hover:text-gray-100",
-        button_next: "absolute right-1 top-0 inline-flex items-center justify-center rounded-md h-7 w-7 bg-transparent hover:bg-gray-700 text-gray-400 hover:text-gray-100",
+        button_previous:
+          "absolute left-1 top-0 inline-flex items-center justify-center rounded-md h-7 w-7 bg-transparent hover:bg-gray-700 text-gray-400 hover:text-gray-100",
+        button_next:
+          "absolute right-1 top-0 inline-flex items-center justify-center rounded-md h-7 w-7 bg-transparent hover:bg-gray-700 text-gray-400 hover:text-gray-100",
         month_grid: "w-full border-collapse",
         weekdays: "flex",
         weekday: "text-gray-500 rounded-md w-9 font-normal text-[0.8rem]",
         week: "flex w-full mt-2",
         day: "h-9 w-9 text-center text-sm p-0 relative",
-        day_button: "h-9 w-9 p-0 font-normal rounded-md hover:bg-gray-700 text-gray-100 inline-flex items-center justify-center",
+        day_button:
+          "h-9 w-9 p-0 font-normal rounded-md hover:bg-gray-700 text-gray-100 inline-flex items-center justify-center",
         selected: "bg-red-700 text-white hover:bg-red-600 focus:bg-red-700",
         today: "bg-gray-700 text-gray-100",
         outside: "text-gray-600 opacity-50",

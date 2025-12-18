@@ -29,7 +29,10 @@ function AppRoutes() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/training-funds-request" element={<TrainingFundsRequest />} />
+        <Route
+          path="/training-funds-request"
+          element={<TrainingFundsRequest />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -32,18 +32,20 @@ export function DateRangePicker({
             variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal bg-gray-700 border-gray-600 hover:bg-gray-600",
-              !value && "text-gray-400"
+              !value && "text-gray-400",
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {value?.from ? (
               value.to ? (
                 <>
-                  {format(value.from, "LLL dd, y")} - {format(value.to, "LLL dd, y")}
+                  {format(value.from, "LLL dd, y")} -{" "}
+                  {format(value.to, "LLL dd, y")}
                 </>
               ) : (
                 <>
-                  {format(value.from, "LLL dd, y")} - <span className="text-gray-500">select end date</span>
+                  {format(value.from, "LLL dd, y")} -{" "}
+                  <span className="text-gray-500">select end date</span>
                 </>
               )
             ) : (

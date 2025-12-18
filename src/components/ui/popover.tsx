@@ -23,7 +23,11 @@ interface PopoverProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-function Popover({ children, open: controlledOpen, onOpenChange }: PopoverProps) {
+function Popover({
+  children,
+  open: controlledOpen,
+  onOpenChange,
+}: PopoverProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
@@ -37,7 +41,7 @@ function Popover({ children, open: controlledOpen, onOpenChange }: PopoverProps)
         setUncontrolledOpen(newValue);
       }
     },
-    [open, onOpenChange]
+    [open, onOpenChange],
   );
 
   return (
@@ -64,14 +68,16 @@ const PopoverTrigger = React.forwardRef<HTMLButtonElement, PopoverTriggerProps>(
     // Combine refs
     const combinedRef = React.useCallback(
       (node: HTMLButtonElement | null) => {
-        (triggerRef as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+        (
+          triggerRef as React.MutableRefObject<HTMLButtonElement | null>
+        ).current = node;
         if (typeof ref === "function") {
           ref(node);
         } else if (ref) {
           ref.current = node;
         }
       },
-      [ref, triggerRef]
+      [ref, triggerRef],
     );
 
     return (
@@ -79,7 +85,7 @@ const PopoverTrigger = React.forwardRef<HTMLButtonElement, PopoverTriggerProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 PopoverTrigger.displayName = "PopoverTrigger";
 
@@ -120,7 +126,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
 
       document.addEventListener("click", handleClickOutside);
       document.addEventListener("keydown", handleEscape);
-      
+
       return () => {
         document.removeEventListener("click", handleClickOutside);
         document.removeEventListener("keydown", handleEscape);
@@ -138,14 +144,16 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     return (
       <div
         ref={(node) => {
-          (contentRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          (
+            contentRef as React.MutableRefObject<HTMLDivElement | null>
+          ).current = node;
           if (typeof ref === "function") ref(node);
           else if (ref) ref.current = node;
         }}
         className={cn(
           "absolute z-50 mt-2 rounded-md border border-gray-700 bg-gray-800 p-4 shadow-lg outline-none animate-in fade-in-0 zoom-in-95",
           alignmentClasses[align],
-          className
+          className,
         )}
         onPointerDown={(e) => e.stopPropagation()}
         {...props}
@@ -153,7 +161,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 PopoverContent.displayName = "PopoverContent";
 

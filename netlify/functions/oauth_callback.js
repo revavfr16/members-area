@@ -55,7 +55,7 @@ export async function handler(event) {
 
     // Get user info
     const profileRes = await fetch(
-      `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokenData.access_token}`
+      `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokenData.access_token}`,
     );
     const profile = await profileRes.json();
 
@@ -83,7 +83,7 @@ export async function handler(event) {
                 <h1 style="color: #e94560;">Access Denied</h1>
                 <p>Only @reva16.org accounts are allowed.</p>
                 <p style="color: #666;">You signed in as: ${profile.email}</p>
-                <a href="/.netlify/functions/logout" style="color: #e94560;">Try a different account</a>
+                <a href="/api/logout" style="color: #e94560;">Try a different account</a>
               </div>
             </body>
           </html>
@@ -123,4 +123,3 @@ export async function handler(event) {
     };
   }
 }
-

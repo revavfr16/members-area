@@ -16,7 +16,7 @@ export async function handler(event) {
 
   try {
     const { payload } = await jwtVerify(match[1], SECRET_KEY());
-    
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -37,4 +37,3 @@ export async function handler(event) {
     };
   }
 }
-

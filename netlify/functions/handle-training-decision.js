@@ -2,7 +2,9 @@ import { Resend } from "resend";
 import { getStore } from "@netlify/blobs";
 
 // Email configuration from environment variables
-const TRAINING_FROM_EMAIL = process.env.TRAINING_FROM_EMAIL || "Training Funds Request <noreply@internal.reva16.org>";
+const TRAINING_FROM_EMAIL =
+  process.env.TRAINING_FROM_EMAIL ||
+  "Training Funds Request <noreply@internal.reva16.org>";
 const TRAINING_DISBURSER_EMAIL = process.env.TRAINING_DISBURSER_EMAIL;
 
 function formatCurrency(value) {
@@ -18,10 +20,11 @@ function formatCurrency(value) {
  */
 function calculateCostBreakdown(data) {
   const registration = parseFloat(data.registration_fee) || 0;
-  const hotel = parseFloat(data.hotel_cost) || parseFloat(data.hotel_total) || 0;
+  const hotel =
+    parseFloat(data.hotel_cost) || parseFloat(data.hotel_total) || 0;
   const flight = parseFloat(data.flight_cost) || 0;
-  const mileage = data.mileage_needed ? (parseFloat(data.mileage_total) || 0) : 0;
-  const meals = data.meals_needed ? (parseFloat(data.meals_total) || 0) : 0;
+  const mileage = data.mileage_needed ? parseFloat(data.mileage_total) || 0 : 0;
+  const meals = data.meals_needed ? parseFloat(data.meals_total) || 0 : 0;
 
   // Build prepaid items (department pays before)
   const prepaidItems = [];
@@ -56,7 +59,10 @@ function calculateCostBreakdown(data) {
   }
   // Mileage and meals are always reimbursement
   if (mileage > 0) {
-    reimbursementItems.push({ label: `Mileage (${data.mileage_miles || "?"} mi)`, amount: mileage });
+    reimbursementItems.push({
+      label: `Mileage (${data.mileage_miles || "?"} mi)`,
+      amount: mileage,
+    });
     reimbursementTotal += mileage;
   }
   if (meals > 0) {
@@ -81,15 +87,35 @@ function calculateCostBreakdown(data) {
 /**
  * Generate HTML for the REQUESTER notification email (status update)
  */
-function formatRequesterEmailHtml(requestData, decision, comments, approverEmail) {
+function formatRequesterEmailHtml(
+  requestData,
+  decision,
+  comments,
+  approverEmail,
+) {
   const { formData } = requestData;
   const requestId = requestData.requestId;
   const breakdown = calculateCostBreakdown(formData);
 
   const statusColors = {
-    accepted: { bg: "#dcfce7", border: "#22c55e", text: "#166534", label: "Accepted" },
-    sent_back: { bg: "#fef3c7", border: "#f59e0b", text: "#92400e", label: "Sent Back" },
-    rejected: { bg: "#fee2e2", border: "#ef4444", text: "#991b1b", label: "Rejected" },
+    accepted: {
+      bg: "#dcfce7",
+      border: "#22c55e",
+      text: "#166534",
+      label: "Accepted",
+    },
+    sent_back: {
+      bg: "#fef3c7",
+      border: "#f59e0b",
+      text: "#92400e",
+      label: "Sent Back",
+    },
+    rejected: {
+      bg: "#fee2e2",
+      border: "#ef4444",
+      text: "#991b1b",
+      label: "Rejected",
+    },
   };
 
   const status = statusColors[decision];
@@ -123,14 +149,18 @@ function formatRequesterEmailHtml(requestData, decision, comments, approverEmail
     <!-- Content -->
     <div style="background: white; padding: 32px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
       
-      ${comments ? `
+      ${
+        comments
+          ? `
       <div style="margin-bottom: 24px;">
         <h2 style="color: #991b1b; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #fecaca;">Approver Comments</h2>
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; color: #1e293b;">
 ${comments}
         </div>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
 
       <div style="margin-bottom: 24px;">
         <h2 style="color: #991b1b; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #fecaca;">Request Summary</h2>
@@ -155,21 +185,29 @@ ${comments}
         </div>
       </div>
 
-      ${decision === "accepted" ? `
+      ${
+        decision === "accepted"
+          ? `
       <div style="background: #dcfce7; border: 1px solid #22c55e; border-radius: 8px; padding: 16px;">
         <p style="margin: 0; font-size: 14px; color: #166534;">
           <strong>Next Steps:</strong> The disbursement team has been notified and will process your request for payment/reimbursement as indicated.
         </p>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
 
-      ${decision === "sent_back" ? `
+      ${
+        decision === "sent_back"
+          ? `
       <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px;">
         <p style="margin: 0; font-size: 14px; color: #92400e;">
           <strong>Action Required:</strong> Please review the comments above and submit a revised request.
         </p>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
 
     </div>
 
@@ -229,33 +267,45 @@ function formatDisburserEmailHtml(requestData, comments) {
     <!-- Content -->
     <div style="background: white; padding: 32px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
       
-      ${comments ? `
+      ${
+        comments
+          ? `
       <div style="margin-bottom: 24px;">
         <h2 style="color: #991b1b; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #fecaca;">Approver Comments</h2>
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; color: #1e293b;">
 ${comments}
         </div>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
 
-      ${section("Requester Information", `
+      ${section(
+        "Requester Information",
+        `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Name", formData.requester_name)}
           ${field("Department / Position", formData.department_position)}
           ${field("Email", `<a href="mailto:${formData.email}" style="color: #991b1b;">${formData.email}</a>`)}
           ${field("Phone", formData.phone)}
         </div>
-      `)}
+      `,
+      )}
 
-      ${section("Training Details", `
+      ${section(
+        "Training Details",
+        `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Training", formData.training_description)}
           ${field("Dates", formData.training_dates)}
           ${field("Location", formData.training_location)}
         </div>
-      `)}
+      `,
+      )}
 
-      ${section("Itemized Costs", `
+      ${section(
+        "Itemized Costs",
+        `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Registration Fee", formatCurrency(formData.registration_fee))}
           ${field("Hotel / Accommodations", formatCurrency(breakdown.hotel))}
@@ -263,21 +313,32 @@ ${comments}
           ${formData.mileage_needed ? field("Mileage", `${formData.mileage_miles || "?"} miles — ${formatCurrency(formData.mileage_total)}`) : ""}
           ${formData.meals_needed ? field("Meals / Per Diem", formatCurrency(formData.meals_total)) : ""}
         </div>
-      `)}
+      `,
+      )}
 
-      ${formData.dept_vehicle ? section("Department Vehicle", `
+      ${
+        formData.dept_vehicle
+          ? section(
+              "Department Vehicle",
+              `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Vehicle Details", formData.dept_vehicle_details || "To be determined")}
         </div>
-      `) : ""}
+      `,
+            )
+          : ""
+      }
 
-      ${section("Cost Breakdown", `
+      ${section(
+        "Cost Breakdown",
+        `
         <div style="background: #dcfce7; padding: 16px; border-radius: 8px; text-align: center; border: 2px solid #22c55e;">
           <span style="color: #166534; font-size: 14px;">Approved Total:</span>
           <span style="color: #166534; font-size: 24px; font-weight: 700; margin-left: 12px;">${formatCurrency(breakdown.totalCost)}</span>
           <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534;">${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later</p>
         </div>
-      `)}
+      `,
+      )}
 
       <!-- CSV Data for easy copy to spreadsheet -->
       <div style="margin-top: 24px; padding: 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
@@ -286,11 +347,18 @@ ${comments}
         <p style="margin: 8px 0 0 0; font-size: 10px; color: #94a3b8;">Columns: Request ID | Name | Email | Training | Dates | Location | Registration | Hotel | Flight | Mileage | Meals | Total | Prepaid | Reimbursement</p>
       </div>
 
-      ${formData.additional_notes ? section("Additional Notes", `
+      ${
+        formData.additional_notes
+          ? section(
+              "Additional Notes",
+              `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; color: #1e293b;">
 ${formData.additional_notes}
         </div>
-      `) : ""}
+      `,
+            )
+          : ""
+      }
 
     </div>
 
@@ -379,7 +447,9 @@ function formatDisburserEmailText(requestData, comments) {
   );
 
   if (formData.mileage_needed) {
-    lines.push(`Mileage: ${formData.mileage_miles || "?"} miles — ${formatCurrency(formData.mileage_total)}`);
+    lines.push(
+      `Mileage: ${formData.mileage_miles || "?"} miles — ${formatCurrency(formData.mileage_total)}`,
+    );
   }
   if (formData.meals_needed) {
     lines.push(`Meals: ${formatCurrency(formData.meals_total)}`);
@@ -388,13 +458,19 @@ function formatDisburserEmailText(requestData, comments) {
   // Cost breakdown
   lines.push("", "-".repeat(40));
   lines.push(`APPROVED TOTAL: ${formatCurrency(breakdown.totalCost)}`);
-  lines.push(`(${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later)`);
+  lines.push(
+    `(${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later)`,
+  );
 
   // CSV for spreadsheet
   lines.push("", "-".repeat(40));
   lines.push("COPY TO SPREADSHEET (tab-separated):");
-  lines.push(`${requestId}\t${formData.requester_name}\t${formData.email}\t${formData.training_description}\t${formData.training_dates}\t${formData.training_location}\t${breakdown.registration}\t${breakdown.hotel}\t${breakdown.flight}\t${breakdown.mileage}\t${breakdown.meals}\t${breakdown.totalCost}\t${breakdown.prepaidTotal}\t${breakdown.reimbursementTotal}`);
-  lines.push("Columns: Request ID | Name | Email | Training | Dates | Location | Registration | Hotel | Flight | Mileage | Meals | Total | Prepaid | Reimbursement");
+  lines.push(
+    `${requestId}\t${formData.requester_name}\t${formData.email}\t${formData.training_description}\t${formData.training_dates}\t${formData.training_location}\t${breakdown.registration}\t${breakdown.hotel}\t${breakdown.flight}\t${breakdown.mileage}\t${breakdown.meals}\t${breakdown.totalCost}\t${breakdown.prepaidTotal}\t${breakdown.reimbursementTotal}`,
+  );
+  lines.push(
+    "Columns: Request ID | Name | Email | Training | Dates | Location | Registration | Hotel | Flight | Mileage | Meals | Total | Prepaid | Reimbursement",
+  );
 
   if (formData.additional_notes) {
     lines.push("", "ADDITIONAL NOTES:", formData.additional_notes);
@@ -408,9 +484,21 @@ function formatDisburserEmailText(requestData, comments) {
  */
 function generateConfirmationPage(decision, requestId) {
   const statusInfo = {
-    accepted: { color: "#22c55e", label: "Accepted", message: "The requester and disbursement team have been notified." },
-    sent_back: { color: "#f59e0b", label: "Sent Back", message: "The requester has been notified to revise their request." },
-    rejected: { color: "#ef4444", label: "Rejected", message: "The requester has been notified of the rejection." },
+    accepted: {
+      color: "#22c55e",
+      label: "Accepted",
+      message: "The requester and disbursement team have been notified.",
+    },
+    sent_back: {
+      color: "#f59e0b",
+      label: "Sent Back",
+      message: "The requester has been notified to revise their request.",
+    },
+    rejected: {
+      color: "#ef4444",
+      label: "Rejected",
+      message: "The requester has been notified of the rejection.",
+    },
   };
 
   const status = statusInfo[decision];
@@ -453,6 +541,159 @@ function generateConfirmationPage(decision, requestId) {
 }
 
 /**
+ * Generate a mobile-friendly decision form page
+ */
+function generateDecisionForm(requestData, requestId, token) {
+  const { formData } = requestData;
+  const breakdown = calculateCostBreakdown(formData);
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Request Decision - ${requestId}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: #f1f5f9; 
+      margin: 0; 
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .container { max-width: 480px; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 16px; }
+    .header { background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: white; padding: 20px; text-align: center; }
+    .header h1 { margin: 0; font-size: 18px; }
+    .header p { margin: 8px 0 0; font-size: 13px; opacity: 0.9; }
+    .section { padding: 16px; border-bottom: 1px solid #e2e8f0; }
+    .section:last-child { border-bottom: none; }
+    .section-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin: 0 0 12px; }
+    .field { margin-bottom: 8px; }
+    .field-label { font-size: 12px; color: #64748b; }
+    .field-value { font-size: 14px; color: #1e293b; font-weight: 500; }
+    .total-box { background: #fef2f2; padding: 12px; border-radius: 8px; text-align: center; }
+    .total-amount { font-size: 24px; font-weight: 700; color: #991b1b; }
+    .total-breakdown { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .form-section { padding: 20px; }
+    .radio-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .radio-option { 
+      display: flex; align-items: center; padding: 14px; 
+      border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; 
+      transition: all 0.15s ease;
+    }
+    .radio-option:has(input:checked) { border-color: #991b1b; background: #fef2f2; }
+    .radio-option input { margin-right: 12px; width: 18px; height: 18px; accent-color: #991b1b; }
+    .radio-option .label { font-weight: 600; font-size: 15px; }
+    .radio-option .desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .radio-option.accept .label { color: #166534; }
+    .radio-option.sendback .label { color: #d97706; }
+    .radio-option.reject .label { color: #dc2626; }
+    textarea { 
+      width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; 
+      font-size: 14px; font-family: inherit; resize: vertical; min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #991b1b; }
+    .submit-btn { 
+      width: 100%; padding: 16px; background: #991b1b; color: white; 
+      border: none; border-radius: 8px; font-size: 16px; font-weight: 600; 
+      cursor: pointer; margin-top: 16px;
+    }
+    .submit-btn:active { background: #7f1d1d; }
+    .footer { text-align: center; color: #94a3b8; font-size: 12px; padding: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="card">
+      <div class="header">
+        <h1>Training Funds Request</h1>
+        <p>${requestId}</p>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">Requester</div>
+        <div class="field">
+          <div class="field-value">${formData.requester_name}</div>
+          <div class="field-label">${formData.department_position}</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">Training</div>
+        <div class="field">
+          <div class="field-value">${formData.training_description}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">📅 ${formData.training_dates}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">📍 ${formData.training_location}</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">Cost Summary</div>
+        <div class="total-box">
+          <div class="total-amount">${formatCurrency(breakdown.totalCost)}</div>
+          <div class="total-breakdown">${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <form method="POST" action="/api/training/decide" class="form-section">
+        <input type="hidden" name="requestId" value="${requestId}">
+        <input type="hidden" name="token" value="${token}">
+        
+        <div class="section-title">Your Decision</div>
+        
+        <div class="radio-group">
+          <label class="radio-option accept">
+            <input type="radio" name="decision" value="accepted" required>
+            <div>
+              <div class="label">✓ Approve</div>
+              <div class="desc">Send to disbursement for processing</div>
+            </div>
+          </label>
+          
+          <label class="radio-option sendback">
+            <input type="radio" name="decision" value="sent_back">
+            <div>
+              <div class="label">↩ Send Back</div>
+              <div class="desc">Request changes from requester</div>
+            </div>
+          </label>
+          
+          <label class="radio-option reject">
+            <input type="radio" name="decision" value="rejected">
+            <div>
+              <div class="label">✗ Reject</div>
+              <div class="desc">Deny the request</div>
+            </div>
+          </label>
+        </div>
+        
+        <div class="field">
+          <label class="field-label" style="display: block; margin-bottom: 8px;">Comments (required for send back/reject)</label>
+          <textarea name="comments" placeholder="Add any notes or feedback..."></textarea>
+        </div>
+        
+        <button type="submit" class="submit-btn">Submit Decision</button>
+      </form>
+    </div>
+    
+    <div class="footer">Reva VFR 16 Members Area</div>
+    
+  </div>
+</body>
+</html>`.trim();
+}
+
+/**
  * Parse form data from request body
  */
 function parseFormData(body) {
@@ -466,7 +707,49 @@ function parseFormData(body) {
 }
 
 export default async (req, context) => {
-  // Only allow POST
+  const url = new URL(req.url);
+
+  // Handle GET requests - show the decision form
+  if (req.method === "GET") {
+    const requestId = url.searchParams.get("requestId");
+    const token = url.searchParams.get("token");
+
+    if (!requestId || !token) {
+      return new Response("Missing requestId or token", { status: 400 });
+    }
+
+    // Verify request exists and token is valid
+    const store = getStore("training-requests");
+    const storedData = await store.get(requestId);
+
+    if (!storedData) {
+      return new Response("Request not found", { status: 404 });
+    }
+
+    const requestData = JSON.parse(storedData);
+
+    if (requestData.token !== token) {
+      return new Response("Invalid token", { status: 403 });
+    }
+
+    if (requestData.status !== "pending") {
+      return new Response(
+        `<html><body style="font-family: sans-serif; padding: 40px; text-align: center;">
+          <h1>Already Processed</h1>
+          <p>This request has already been ${requestData.status}.</p>
+        </body></html>`,
+        { status: 400, headers: { "Content-Type": "text/html" } },
+      );
+    }
+
+    // Show the decision form
+    return new Response(generateDecisionForm(requestData, requestId, token), {
+      status: 200,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
+  // Handle POST requests - process the decision
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -487,14 +770,17 @@ export default async (req, context) => {
     }
 
     // Require comments for sent_back and rejected
-    if ((decision === "sent_back" || decision === "rejected") && !comments.trim()) {
+    if (
+      (decision === "sent_back" || decision === "rejected") &&
+      !comments.trim()
+    ) {
       return new Response(
         `<html><body style="font-family: sans-serif; padding: 40px; text-align: center;">
           <h1>Comments Required</h1>
           <p>Please provide comments when sending back or rejecting a request.</p>
           <button onclick="history.back()">Go Back</button>
         </body></html>`,
-        { status: 400, headers: { "Content-Type": "text/html" } }
+        { status: 400, headers: { "Content-Type": "text/html" } },
       );
     }
 
@@ -520,7 +806,7 @@ export default async (req, context) => {
           <h1>Already Processed</h1>
           <p>This request has already been ${requestData.status}.</p>
         </body></html>`,
-        { status: 400, headers: { "Content-Type": "text/html" } }
+        { status: 400, headers: { "Content-Type": "text/html" } },
       );
     }
 
@@ -579,7 +865,9 @@ export default async (req, context) => {
       if (disburserError) {
         console.error("Failed to send disburser notification:", disburserError);
       } else {
-        console.log(`Disburser notification sent to: ${TRAINING_DISBURSER_EMAIL}`);
+        console.log(
+          `Disburser notification sent to: ${TRAINING_DISBURSER_EMAIL}`,
+        );
       }
     }
 
@@ -588,7 +876,6 @@ export default async (req, context) => {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
-
   } catch (error) {
     console.error("Error handling decision:", error);
     return new Response("Internal server error", { status: 500 });

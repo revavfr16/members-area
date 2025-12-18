@@ -9,7 +9,10 @@ export default function Layout() {
       {/* Header */}
       <header className="border-b border-red-700 bg-red-800 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="text-xl font-semibold tracking-tight hover:text-gray-200 transition-colors">
+          <Link
+            to="/"
+            className="text-xl font-semibold tracking-tight hover:text-gray-200 transition-colors"
+          >
             Reva VFR 16 Members Area
           </Link>
           <div className="flex items-center gap-4">
@@ -30,7 +33,7 @@ export default function Layout() {
               )}
             </div>
             <a
-              href="/.netlify/functions/logout"
+              href="/api/logout"
               className="text-sm px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 transition-colors"
             >
               Sign out

@@ -4,7 +4,9 @@ import { getStore } from "@netlify/blobs";
 import crypto from "crypto";
 
 // Email configuration from environment variables
-const TRAINING_FROM_EMAIL = process.env.TRAINING_FROM_EMAIL || "Training Funds Request <noreply@internal.reva16.org>";
+const TRAINING_FROM_EMAIL =
+  process.env.TRAINING_FROM_EMAIL ||
+  "Training Funds Request <noreply@internal.reva16.org>";
 const TRAINING_APPROVER_EMAIL = process.env.TRAINING_APPROVER_EMAIL;
 const TRAINING_DISBURSER_EMAIL = process.env.TRAINING_DISBURSER_EMAIL;
 
@@ -55,10 +57,11 @@ function generateToken() {
  */
 function calculateCostBreakdown(data) {
   const registration = parseFloat(data.registration_fee) || 0;
-  const hotel = parseFloat(data.hotel_cost) || parseFloat(data.hotel_total) || 0;
+  const hotel =
+    parseFloat(data.hotel_cost) || parseFloat(data.hotel_total) || 0;
   const flight = parseFloat(data.flight_cost) || 0;
-  const mileage = data.mileage_needed ? (parseFloat(data.mileage_total) || 0) : 0;
-  const meals = data.meals_needed ? (parseFloat(data.meals_total) || 0) : 0;
+  const mileage = data.mileage_needed ? parseFloat(data.mileage_total) || 0 : 0;
+  const meals = data.meals_needed ? parseFloat(data.meals_total) || 0 : 0;
 
   // Build prepaid items (department pays before)
   const prepaidItems = [];
@@ -93,7 +96,10 @@ function calculateCostBreakdown(data) {
   }
   // Mileage and meals are always reimbursement
   if (mileage > 0) {
-    reimbursementItems.push({ label: `Mileage (${data.mileage_miles || "?"} mi)`, amount: mileage });
+    reimbursementItems.push({
+      label: `Mileage (${data.mileage_miles || "?"} mi)`,
+      amount: mileage,
+    });
     reimbursementTotal += mileage;
   }
   if (meals > 0) {
@@ -130,7 +136,7 @@ function formatEmailHtml(data, requestId, token, baseUrl) {
       <span style="color: #1e293b; margin-left: 8px;">${value || "N/A"}</span>
     </p>`;
 
-  const actionFormUrl = `${baseUrl}/.netlify/functions/handle-training-decision`;
+  const actionFormUrl = `${baseUrl}/api/training/decide`;
 
   return `
 <!DOCTYPE html>
@@ -151,24 +157,32 @@ function formatEmailHtml(data, requestId, token, baseUrl) {
     <!-- Content -->
     <div style="background: white; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
       
-      ${section("Requester Information", `
+      ${section(
+        "Requester Information",
+        `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Name", data.requester_name)}
           ${field("Department / Position", data.department_position)}
           ${field("Email", `<a href="mailto:${data.email}" style="color: #991b1b;">${data.email}</a>`)}
           ${field("Phone", data.phone)}
         </div>
-      `)}
+      `,
+      )}
 
-      ${section("Training Details", `
+      ${section(
+        "Training Details",
+        `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Training", data.training_description)}
           ${field("Dates", data.training_dates)}
           ${field("Location", data.training_location)}
         </div>
-      `)}
+      `,
+      )}
 
-      ${section("Itemized Costs", `
+      ${section(
+        "Itemized Costs",
+        `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Registration Fee", formatCurrency(data.registration_fee))}
           ${field("Hotel / Accommodations", formatCurrency(breakdown.hotel))}
@@ -176,62 +190,57 @@ function formatEmailHtml(data, requestId, token, baseUrl) {
           ${data.mileage_needed ? field("Mileage", `${data.mileage_miles || "?"} miles — ${formatCurrency(data.mileage_total)}`) : ""}
           ${data.meals_needed ? field("Meals / Per Diem", formatCurrency(data.meals_total)) : ""}
         </div>
-      `)}
+      `,
+      )}
 
-      ${data.dept_vehicle ? section("Department Vehicle", `
+      ${
+        data.dept_vehicle
+          ? section(
+              "Department Vehicle",
+              `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Vehicle Details", data.dept_vehicle_details || "To be determined")}
         </div>
-      `) : ""}
+      `,
+            )
+          : ""
+      }
 
-      ${section("Cost Breakdown", `
+      ${section(
+        "Cost Breakdown",
+        `
         <div style="background: #fef2f2; padding: 16px; border-radius: 8px; margin-top: 12px; text-align: center;">
           <span style="color: #64748b; font-size: 14px;">Total Request:</span>
           <span style="color: #991b1b; font-size: 24px; font-weight: 700; margin-left: 12px;">${formatCurrency(breakdown.totalCost)}</span>
           <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later</p>
         </div>
-      `)}
+      `,
+      )}
 
-      ${data.additional_notes ? section("Additional Notes", `
+      ${
+        data.additional_notes
+          ? section(
+              "Additional Notes",
+              `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; color: #1e293b;">
 ${data.additional_notes}
         </div>
-      `) : ""}
+      `,
+            )
+          : ""
+      }
 
     </div>
 
-    <!-- Decision Form -->
-    <div style="background: #fffbeb; padding: 24px 32px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
-      <h3 style="color: #92400e; margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">⚡ Your Decision</h3>
-      
-      <form action="${actionFormUrl}" method="POST" style="margin: 0;">
-        <input type="hidden" name="requestId" value="${requestId}">
-        <input type="hidden" name="token" value="${token}">
-        
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; cursor: pointer;">
-            <input type="radio" name="decision" value="accepted" required style="margin-right: 8px;">
-            <strong style="color: #059669;">Accepted</strong> — Approve this request
-          </label>
-          <label style="display: block; margin-bottom: 8px; cursor: pointer;">
-            <input type="radio" name="decision" value="sent_back" style="margin-right: 8px;">
-            <strong style="color: #d97706;">Sent Back</strong> — Request changes
-          </label>
-          <label style="display: block; cursor: pointer;">
-            <input type="radio" name="decision" value="rejected" style="margin-right: 8px;">
-            <strong style="color: #dc2626;">Rejected</strong> — Deny the request
-          </label>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #78350f;">Comments (optional for approval, required for others):</label>
-          <textarea name="comments" rows="3" style="width: 100%; padding: 12px; border: 1px solid #fbbf24; border-radius: 6px; font-size: 14px; font-family: inherit; box-sizing: border-box; resize: vertical;"></textarea>
-        </div>
-
-        <button type="submit" style="background: #991b1b; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">
-          Submit Decision
-        </button>
-      </form>
+    <!-- Decision Button -->
+    <div style="background: #fffbeb; padding: 32px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; text-align: center;">
+      <a href="${actionFormUrl}?requestId=${requestId}&token=${token}" 
+         style="display: inline-block; background: #991b1b; color: white; text-decoration: none; padding: 16px 48px; border-radius: 8px; font-size: 18px; font-weight: 600;">
+        Review &amp; Decide
+      </a>
+      <p style="margin: 16px 0 0 0; font-size: 13px; color: #92400e;">
+        Click above to approve, send back, or reject this request
+      </p>
     </div>
 
     <!-- Footer -->
@@ -244,7 +253,7 @@ ${data.additional_notes}
 </html>`.trim();
 }
 
-function formatEmailText(data, requestId, baseUrl) {
+function formatEmailText(data, requestId, token, baseUrl) {
   const breakdown = calculateCostBreakdown(data);
 
   const lines = [
@@ -269,32 +278,42 @@ function formatEmailText(data, requestId, baseUrl) {
   ];
 
   if (data.mileage_needed) {
-    lines.push(`Mileage: ${data.mileage_miles || "?"} miles — ${formatCurrency(data.mileage_total)}`);
+    lines.push(
+      `Mileage: ${data.mileage_miles || "?"} miles — ${formatCurrency(data.mileage_total)}`,
+    );
   }
   if (data.meals_needed) {
     lines.push(`Meals: ${formatCurrency(data.meals_total)}`);
   }
 
   if (data.dept_vehicle) {
-    lines.push("", "DEPARTMENT VEHICLE", `Details: ${data.dept_vehicle_details || "TBD"}`);
+    lines.push(
+      "",
+      "DEPARTMENT VEHICLE",
+      `Details: ${data.dept_vehicle_details || "TBD"}`,
+    );
   }
 
   // Cost breakdown
   lines.push("", "-".repeat(40));
   lines.push(`TOTAL REQUEST: ${formatCurrency(breakdown.totalCost)}`);
-  lines.push(`(${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later)`);
+  lines.push(
+    `(${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later)`,
+  );
 
   if (data.additional_notes) {
     lines.push("", "ADDITIONAL NOTES", data.additional_notes);
   }
+
+  const decisionUrl = `${baseUrl}/api/training/decide?requestId=${requestId}&token=${token}`;
 
   lines.push(
     "",
     "=".repeat(50),
     "",
     "ACTION REQUIRED",
-    `Please view this email in HTML format to submit your decision, or visit:`,
-    `${baseUrl}/training-decision?requestId=${requestId}`
+    `Submit your decision here:`,
+    decisionUrl,
   );
 
   return lines.join("\n");
@@ -334,16 +353,16 @@ export default async (req, context) => {
 
   try {
     const formData = await req.json();
-    
+
     // Get blob store
     const store = getStore("training-requests");
-    
+
     // Generate request ID
     const requestId = await generateRequestId(formData.email, store);
-    
+
     // Generate secure token for approval form
     const token = generateToken();
-    
+
     // Get base URL for form action
     const url = new URL(req.url);
     const baseUrl = `${url.protocol}//${url.host}`;
@@ -351,16 +370,20 @@ export default async (req, context) => {
     if (!TRAINING_APPROVER_EMAIL) {
       console.error("TRAINING_APPROVER_EMAIL not configured");
       return new Response(
-        JSON.stringify({ error: "No approvers configured. Please contact the administrator." }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "No approvers configured. Please contact the administrator.",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
     if (!TRAINING_DISBURSER_EMAIL) {
       console.error("TRAINING_DISBURSER_EMAIL not configured");
       return new Response(
-        JSON.stringify({ error: "No disbursers configured. Please contact the administrator." }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "No disbursers configured. Please contact the administrator.",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -372,7 +395,7 @@ export default async (req, context) => {
       submittedAt: new Date().toISOString(),
       submittedBy: user.email,
     };
-    
+
     await store.set(requestId, JSON.stringify(requestData));
     console.log("Stored request:", requestId);
 
@@ -385,8 +408,11 @@ export default async (req, context) => {
     if (!process.env.RESEND_API_KEY) {
       console.error("RESEND_API_KEY not configured!");
       return new Response(
-        JSON.stringify({ error: "Email service not configured. Please contact the administrator." }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "Email service not configured. Please contact the administrator.",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -398,14 +424,17 @@ export default async (req, context) => {
       replyTo: formData.email,
       subject: `Training Funds Request ${requestId} - ${formData.requester_name}`,
       html: formatEmailHtml(formData, requestId, token, baseUrl),
-      text: formatEmailText(formData, requestId, baseUrl),
+      text: formatEmailText(formData, requestId, token, baseUrl),
     });
 
     if (emailError) {
       console.error("Failed to send email:", emailError);
       return new Response(
-        JSON.stringify({ error: "Failed to send notification email", details: emailError.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Failed to send notification email",
+          details: emailError.message,
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -418,13 +447,13 @@ export default async (req, context) => {
         message: "Request submitted successfully",
         emailId: emailResult?.id,
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error processing training request:", error);
     return new Response(
       JSON.stringify({ error: "Failed to process request" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 };
