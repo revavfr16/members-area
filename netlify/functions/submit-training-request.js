@@ -50,26 +50,73 @@ function generateToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
-function formatEmailHtml(data, requestId, token, baseUrl) {
-  const costs = [
-    parseFloat(data.registration_fee) || 0,
-    parseFloat(data.hotel_cost) || 0,
-    parseFloat(data.flight_cost) || 0,
-    parseFloat(data.mileage_total) || 0,
-    parseFloat(data.meals_total) || 0,
-  ];
-  const totalCost = costs.reduce((sum, cost) => sum + cost, 0);
+/**
+ * Calculate cost breakdown by payment timing
+ */
+function calculateCostBreakdown(data) {
+  const registration = parseFloat(data.registration_fee) || 0;
+  const hotel = parseFloat(data.hotel_cost) || parseFloat(data.hotel_total) || 0;
+  const flight = parseFloat(data.flight_cost) || 0;
+  const mileage = data.mileage_needed ? (parseFloat(data.mileage_total) || 0) : 0;
+  const meals = data.meals_needed ? (parseFloat(data.meals_total) || 0) : 0;
 
-  const payAheadItems = [];
-  if (data.pay_ahead_registration) payAheadItems.push("Registration Fee");
-  if (data.pay_ahead_hotel) payAheadItems.push("Hotel");
-  if (data.pay_ahead_flight) payAheadItems.push("Flight");
-  if (data.pay_ahead_other) payAheadItems.push(`Other: ${data.pay_ahead_other_details}`);
+  // Build prepaid items (department pays before)
+  const prepaidItems = [];
+  let prepaidTotal = 0;
+  if (data.pay_ahead_registration && registration > 0) {
+    prepaidItems.push({ label: "Registration", amount: registration });
+    prepaidTotal += registration;
+  }
+  if (data.pay_ahead_hotel && hotel > 0) {
+    prepaidItems.push({ label: "Hotel", amount: hotel });
+    prepaidTotal += hotel;
+  }
+  if (data.pay_ahead_flight && flight > 0) {
+    prepaidItems.push({ label: "Airfare", amount: flight });
+    prepaidTotal += flight;
+  }
 
+  // Build reimbursement items (paid after)
   const reimbursementItems = [];
-  if (data.reimburse_mileage) reimbursementItems.push("Mileage");
-  if (data.reimburse_meals) reimbursementItems.push("Meals / Per Diem");
-  if (data.reimburse_other) reimbursementItems.push(`Other: ${data.reimburse_other_details}`);
+  let reimbursementTotal = 0;
+  if (!data.pay_ahead_registration && registration > 0) {
+    reimbursementItems.push({ label: "Registration", amount: registration });
+    reimbursementTotal += registration;
+  }
+  if (!data.pay_ahead_hotel && hotel > 0) {
+    reimbursementItems.push({ label: "Hotel", amount: hotel });
+    reimbursementTotal += hotel;
+  }
+  if (!data.pay_ahead_flight && flight > 0) {
+    reimbursementItems.push({ label: "Airfare", amount: flight });
+    reimbursementTotal += flight;
+  }
+  // Mileage and meals are always reimbursement
+  if (mileage > 0) {
+    reimbursementItems.push({ label: `Mileage (${data.mileage_miles || "?"} mi)`, amount: mileage });
+    reimbursementTotal += mileage;
+  }
+  if (meals > 0) {
+    reimbursementItems.push({ label: "Meals / Per Diem", amount: meals });
+    reimbursementTotal += meals;
+  }
+
+  return {
+    registration,
+    hotel,
+    flight,
+    mileage,
+    meals,
+    totalCost: registration + hotel + flight + mileage + meals,
+    prepaidItems,
+    prepaidTotal,
+    reimbursementItems,
+    reimbursementTotal,
+  };
+}
+
+function formatEmailHtml(data, requestId, token, baseUrl) {
+  const breakdown = calculateCostBreakdown(data);
 
   const section = (title, content) => `
     <div style="margin-bottom: 24px;">
@@ -124,14 +171,10 @@ function formatEmailHtml(data, requestId, token, baseUrl) {
       ${section("Itemized Costs", `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Registration Fee", formatCurrency(data.registration_fee))}
-          ${field("Hotel / Accommodations", formatCurrency(data.hotel_cost))}
+          ${field("Hotel / Accommodations", formatCurrency(breakdown.hotel))}
           ${field("Airfare / Flight", formatCurrency(data.flight_cost))}
           ${data.mileage_needed ? field("Mileage", `${data.mileage_miles || "?"} miles — ${formatCurrency(data.mileage_total)}`) : ""}
           ${data.meals_needed ? field("Meals / Per Diem", formatCurrency(data.meals_total)) : ""}
-        </div>
-        <div style="background: #fef2f2; padding: 16px; border-radius: 8px; margin-top: 12px; text-align: right;">
-          <span style="color: #64748b; font-size: 14px;">Estimated Total:</span>
-          <span style="color: #991b1b; font-size: 24px; font-weight: 700; margin-left: 12px;">${formatCurrency(totalCost)}</span>
         </div>
       `)}
 
@@ -141,12 +184,13 @@ function formatEmailHtml(data, requestId, token, baseUrl) {
         </div>
       `) : ""}
 
-      ${(payAheadItems.length > 0 || reimbursementItems.length > 0) ? section("Payment Preferences", `
-        <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
-          ${payAheadItems.length > 0 ? `<p style="margin: 0 0 8px 0; font-size: 14px;"><strong style="color: #059669;">Pay Ahead:</strong> <span style="color: #1e293b;">${payAheadItems.join(", ")}</span></p>` : ""}
-          ${reimbursementItems.length > 0 ? `<p style="margin: 0; font-size: 14px;"><strong style="color: #2563eb;">Reimburse After:</strong> <span style="color: #1e293b;">${reimbursementItems.join(", ")}</span></p>` : ""}
+      ${section("Cost Breakdown", `
+        <div style="background: #fef2f2; padding: 16px; border-radius: 8px; margin-top: 12px; text-align: center;">
+          <span style="color: #64748b; font-size: 14px;">Total Request:</span>
+          <span style="color: #991b1b; font-size: 24px; font-weight: 700; margin-left: 12px;">${formatCurrency(breakdown.totalCost)}</span>
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later</p>
         </div>
-      `) : ""}
+      `)}
 
       ${data.additional_notes ? section("Additional Notes", `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; color: #1e293b;">
@@ -201,6 +245,8 @@ ${data.additional_notes}
 }
 
 function formatEmailText(data, requestId, baseUrl) {
+  const breakdown = calculateCostBreakdown(data);
+
   const lines = [
     `Training Funds Request #${requestId}`,
     "=".repeat(50),
@@ -218,7 +264,7 @@ function formatEmailText(data, requestId, baseUrl) {
     "",
     "ITEMIZED COSTS",
     `Registration Fee: ${formatCurrency(data.registration_fee)}`,
-    `Hotel/Accommodations: ${formatCurrency(data.hotel_cost)}`,
+    `Hotel/Accommodations: ${formatCurrency(breakdown.hotel)}`,
     `Airfare/Flight: ${formatCurrency(data.flight_cost)}`,
   ];
 
@@ -233,19 +279,10 @@ function formatEmailText(data, requestId, baseUrl) {
     lines.push("", "DEPARTMENT VEHICLE", `Details: ${data.dept_vehicle_details || "TBD"}`);
   }
 
-  const payAheadItems = [];
-  if (data.pay_ahead_registration) payAheadItems.push("Registration Fee");
-  if (data.pay_ahead_hotel) payAheadItems.push("Hotel");
-  if (data.pay_ahead_flight) payAheadItems.push("Flight");
-  if (data.pay_ahead_other) payAheadItems.push(`Other: ${data.pay_ahead_other_details}`);
-
-  const reimbursementItems = [];
-  if (data.reimburse_mileage) reimbursementItems.push("Mileage");
-  if (data.reimburse_meals) reimbursementItems.push("Meals/Per Diem");
-  if (data.reimburse_other) reimbursementItems.push(`Other: ${data.reimburse_other_details}`);
-
-  if (payAheadItems.length > 0) lines.push("", "PAY AHEAD: " + payAheadItems.join(", "));
-  if (reimbursementItems.length > 0) lines.push("REIMBURSE: " + reimbursementItems.join(", "));
+  // Cost breakdown
+  lines.push("", "-".repeat(40));
+  lines.push(`TOTAL REQUEST: ${formatCurrency(breakdown.totalCost)}`);
+  lines.push(`(${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later)`);
 
   if (data.additional_notes) {
     lines.push("", "ADDITIONAL NOTES", data.additional_notes);

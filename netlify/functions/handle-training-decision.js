@@ -14,11 +14,77 @@ function formatCurrency(value) {
 }
 
 /**
+ * Calculate cost breakdown by payment timing
+ */
+function calculateCostBreakdown(data) {
+  const registration = parseFloat(data.registration_fee) || 0;
+  const hotel = parseFloat(data.hotel_cost) || parseFloat(data.hotel_total) || 0;
+  const flight = parseFloat(data.flight_cost) || 0;
+  const mileage = data.mileage_needed ? (parseFloat(data.mileage_total) || 0) : 0;
+  const meals = data.meals_needed ? (parseFloat(data.meals_total) || 0) : 0;
+
+  // Build prepaid items (department pays before)
+  const prepaidItems = [];
+  let prepaidTotal = 0;
+  if (data.pay_ahead_registration && registration > 0) {
+    prepaidItems.push({ label: "Registration", amount: registration });
+    prepaidTotal += registration;
+  }
+  if (data.pay_ahead_hotel && hotel > 0) {
+    prepaidItems.push({ label: "Hotel", amount: hotel });
+    prepaidTotal += hotel;
+  }
+  if (data.pay_ahead_flight && flight > 0) {
+    prepaidItems.push({ label: "Airfare", amount: flight });
+    prepaidTotal += flight;
+  }
+
+  // Build reimbursement items (paid after)
+  const reimbursementItems = [];
+  let reimbursementTotal = 0;
+  if (!data.pay_ahead_registration && registration > 0) {
+    reimbursementItems.push({ label: "Registration", amount: registration });
+    reimbursementTotal += registration;
+  }
+  if (!data.pay_ahead_hotel && hotel > 0) {
+    reimbursementItems.push({ label: "Hotel", amount: hotel });
+    reimbursementTotal += hotel;
+  }
+  if (!data.pay_ahead_flight && flight > 0) {
+    reimbursementItems.push({ label: "Airfare", amount: flight });
+    reimbursementTotal += flight;
+  }
+  // Mileage and meals are always reimbursement
+  if (mileage > 0) {
+    reimbursementItems.push({ label: `Mileage (${data.mileage_miles || "?"} mi)`, amount: mileage });
+    reimbursementTotal += mileage;
+  }
+  if (meals > 0) {
+    reimbursementItems.push({ label: "Meals / Per Diem", amount: meals });
+    reimbursementTotal += meals;
+  }
+
+  return {
+    registration,
+    hotel,
+    flight,
+    mileage,
+    meals,
+    totalCost: registration + hotel + flight + mileage + meals,
+    prepaidItems,
+    prepaidTotal,
+    reimbursementItems,
+    reimbursementTotal,
+  };
+}
+
+/**
  * Generate HTML for the REQUESTER notification email (status update)
  */
 function formatRequesterEmailHtml(requestData, decision, comments, approverEmail) {
   const { formData } = requestData;
   const requestId = requestData.requestId;
+  const breakdown = calculateCostBreakdown(formData);
 
   const statusColors = {
     accepted: { bg: "#dcfce7", border: "#22c55e", text: "#166534", label: "Accepted" },
@@ -27,14 +93,6 @@ function formatRequesterEmailHtml(requestData, decision, comments, approverEmail
   };
 
   const status = statusColors[decision];
-  const costs = [
-    parseFloat(formData.registration_fee) || 0,
-    parseFloat(formData.hotel_cost) || 0,
-    parseFloat(formData.flight_cost) || 0,
-    parseFloat(formData.mileage_total) || 0,
-    parseFloat(formData.meals_total) || 0,
-  ];
-  const totalCost = costs.reduce((sum, cost) => sum + cost, 0);
 
   return `
 <!DOCTYPE html>
@@ -91,7 +149,8 @@ ${comments}
           </p>
           <p style="margin: 0; font-size: 14px;">
             <span style="color: #64748b; font-weight: 500;">Total:</span>
-            <span style="color: #991b1b; font-weight: 700; margin-left: 8px;">${formatCurrency(totalCost)}</span>
+            <span style="color: #991b1b; font-weight: 700; margin-left: 8px;">${formatCurrency(breakdown.totalCost)}</span>
+            <span style="color: #64748b; font-size: 12px; margin-left: 8px;">(${formatCurrency(breakdown.prepaidTotal)} prepaid + ${formatCurrency(breakdown.reimbursementTotal)} reimbursement)</span>
           </p>
         </div>
       </div>
@@ -130,26 +189,7 @@ ${comments}
 function formatDisburserEmailHtml(requestData, comments) {
   const { formData } = requestData;
   const requestId = requestData.requestId;
-
-  const costs = [
-    parseFloat(formData.registration_fee) || 0,
-    parseFloat(formData.hotel_cost) || 0,
-    parseFloat(formData.flight_cost) || 0,
-    parseFloat(formData.mileage_total) || 0,
-    parseFloat(formData.meals_total) || 0,
-  ];
-  const totalCost = costs.reduce((sum, cost) => sum + cost, 0);
-
-  const payAheadItems = [];
-  if (formData.pay_ahead_registration) payAheadItems.push("Registration Fee");
-  if (formData.pay_ahead_hotel) payAheadItems.push("Hotel");
-  if (formData.pay_ahead_flight) payAheadItems.push("Flight");
-  if (formData.pay_ahead_other) payAheadItems.push(`Other: ${formData.pay_ahead_other_details}`);
-
-  const reimbursementItems = [];
-  if (formData.reimburse_mileage) reimbursementItems.push("Mileage");
-  if (formData.reimburse_meals) reimbursementItems.push("Meals / Per Diem");
-  if (formData.reimburse_other) reimbursementItems.push(`Other: ${formData.reimburse_other_details}`);
+  const breakdown = calculateCostBreakdown(formData);
 
   const section = (title, content) => `
     <div style="margin-bottom: 24px;">
@@ -218,14 +258,10 @@ ${comments}
       ${section("Itemized Costs", `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px;">
           ${field("Registration Fee", formatCurrency(formData.registration_fee))}
-          ${field("Hotel / Accommodations", formatCurrency(formData.hotel_cost))}
+          ${field("Hotel / Accommodations", formatCurrency(breakdown.hotel))}
           ${field("Airfare / Flight", formatCurrency(formData.flight_cost))}
           ${formData.mileage_needed ? field("Mileage", `${formData.mileage_miles || "?"} miles — ${formatCurrency(formData.mileage_total)}`) : ""}
           ${formData.meals_needed ? field("Meals / Per Diem", formatCurrency(formData.meals_total)) : ""}
-        </div>
-        <div style="background: #dcfce7; padding: 16px; border-radius: 8px; margin-top: 12px; text-align: right;">
-          <span style="color: #166534; font-size: 14px;">Approved Total:</span>
-          <span style="color: #166534; font-size: 24px; font-weight: 700; margin-left: 12px;">${formatCurrency(totalCost)}</span>
         </div>
       `)}
 
@@ -235,22 +271,20 @@ ${comments}
         </div>
       `) : ""}
 
-      ${(payAheadItems.length > 0 || reimbursementItems.length > 0) ? section("Payment Instructions", `
-        <div style="background: #fef3c7; border-radius: 8px; padding: 16px;">
-          ${payAheadItems.length > 0 ? `
-            <div style="margin-bottom: 12px;">
-              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #059669;">⬆️ PAY AHEAD (before travel):</p>
-              <p style="margin: 0; font-size: 14px; color: #1e293b; padding-left: 24px;">${payAheadItems.join(", ")}</p>
-            </div>
-          ` : ""}
-          ${reimbursementItems.length > 0 ? `
-            <div>
-              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #2563eb;">⬇️ REIMBURSE (after travel):</p>
-              <p style="margin: 0; font-size: 14px; color: #1e293b; padding-left: 24px;">${reimbursementItems.join(", ")}</p>
-            </div>
-          ` : ""}
+      ${section("Cost Breakdown", `
+        <div style="background: #dcfce7; padding: 16px; border-radius: 8px; text-align: center; border: 2px solid #22c55e;">
+          <span style="color: #166534; font-size: 14px;">Approved Total:</span>
+          <span style="color: #166534; font-size: 24px; font-weight: 700; margin-left: 12px;">${formatCurrency(breakdown.totalCost)}</span>
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534;">${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later</p>
         </div>
-      `) : ""}
+      `)}
+
+      <!-- CSV Data for easy copy to spreadsheet -->
+      <div style="margin-top: 24px; padding: 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
+        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #64748b;">📋 Copy to Spreadsheet (tab-separated):</p>
+        <textarea readonly style="width: 100%; height: 60px; font-family: monospace; font-size: 11px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; background: white; resize: vertical; box-sizing: border-box;" onclick="this.select()">${requestId}\t${formData.requester_name}\t${formData.email}\t${formData.training_description}\t${formData.training_dates}\t${formData.training_location}\t${breakdown.registration}\t${breakdown.hotel}\t${breakdown.flight}\t${breakdown.mileage}\t${breakdown.meals}\t${breakdown.totalCost}\t${breakdown.prepaidTotal}\t${breakdown.reimbursementTotal}</textarea>
+        <p style="margin: 8px 0 0 0; font-size: 10px; color: #94a3b8;">Columns: Request ID | Name | Email | Training | Dates | Location | Registration | Hotel | Flight | Mileage | Meals | Total | Prepaid | Reimbursement</p>
+      </div>
 
       ${formData.additional_notes ? section("Additional Notes", `
         <div style="background: #f8fafc; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; color: #1e293b;">
@@ -313,6 +347,7 @@ function formatRequesterEmailText(requestData, decision, comments) {
 function formatDisburserEmailText(requestData, comments) {
   const { formData } = requestData;
   const requestId = requestData.requestId;
+  const breakdown = calculateCostBreakdown(formData);
 
   const lines = [
     `APPROVED FOR DISBURSEMENT`,
@@ -339,7 +374,7 @@ function formatDisburserEmailText(requestData, comments) {
     "",
     "ITEMIZED COSTS:",
     `Registration Fee: ${formatCurrency(formData.registration_fee)}`,
-    `Hotel/Accommodations: ${formatCurrency(formData.hotel_cost)}`,
+    `Hotel/Accommodations: ${formatCurrency(breakdown.hotel)}`,
     `Airfare/Flight: ${formatCurrency(formData.flight_cost)}`,
   );
 
@@ -350,19 +385,16 @@ function formatDisburserEmailText(requestData, comments) {
     lines.push(`Meals: ${formatCurrency(formData.meals_total)}`);
   }
 
-  const payAheadItems = [];
-  if (formData.pay_ahead_registration) payAheadItems.push("Registration Fee");
-  if (formData.pay_ahead_hotel) payAheadItems.push("Hotel");
-  if (formData.pay_ahead_flight) payAheadItems.push("Flight");
-  if (formData.pay_ahead_other) payAheadItems.push(`Other: ${formData.pay_ahead_other_details}`);
+  // Cost breakdown
+  lines.push("", "-".repeat(40));
+  lines.push(`APPROVED TOTAL: ${formatCurrency(breakdown.totalCost)}`);
+  lines.push(`(${formatCurrency(breakdown.prepaidTotal)} now + ${formatCurrency(breakdown.reimbursementTotal)} later)`);
 
-  const reimbursementItems = [];
-  if (formData.reimburse_mileage) reimbursementItems.push("Mileage");
-  if (formData.reimburse_meals) reimbursementItems.push("Meals/Per Diem");
-  if (formData.reimburse_other) reimbursementItems.push(`Other: ${formData.reimburse_other_details}`);
-
-  if (payAheadItems.length > 0) lines.push("", "PAY AHEAD: " + payAheadItems.join(", "));
-  if (reimbursementItems.length > 0) lines.push("REIMBURSE: " + reimbursementItems.join(", "));
+  // CSV for spreadsheet
+  lines.push("", "-".repeat(40));
+  lines.push("COPY TO SPREADSHEET (tab-separated):");
+  lines.push(`${requestId}\t${formData.requester_name}\t${formData.email}\t${formData.training_description}\t${formData.training_dates}\t${formData.training_location}\t${breakdown.registration}\t${breakdown.hotel}\t${breakdown.flight}\t${breakdown.mileage}\t${breakdown.meals}\t${breakdown.totalCost}\t${breakdown.prepaidTotal}\t${breakdown.reimbursementTotal}`);
+  lines.push("Columns: Request ID | Name | Email | Training | Dates | Location | Registration | Hotel | Flight | Mileage | Meals | Total | Prepaid | Reimbursement");
 
   if (formData.additional_notes) {
     lines.push("", "ADDITIONAL NOTES:", formData.additional_notes);
